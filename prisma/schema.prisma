@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id     Int     @id @default(autoincrement())
+  email  String  @unique
+  name   String?
+  habits Habit[]
+}
+
+model Habit {
+  id          Int     @id @default(autoincrement())
+  title       String
+  description String?
+  user        User    @relation(fields: [userId], references: [id])
+  userId      Int
+  tracks      Track[]
+}
+
+model Track {
+  id      Int      @id @default(autoincrement())
+  habitId Int
+  date    DateTime @default(now())
+  Habit   Habit    @relation(fields: [habitId], references: [id])
+}
