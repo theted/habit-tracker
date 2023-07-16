@@ -22,10 +22,21 @@ npm install
 npm run dev
 ```
 
+## Start backend server in development
+```sh
+npx nodemon server.ts
+```
+
 ## Build css
 
 ```sh
 npx tailwindcss -i ./src/input.css -o ./src/assets/output.css --watch
+```
+
+## Build & run Docker image
+```sh
+docker build -t habit-tracker .
+docker run -it -p 3000:3000 habit-tracker
 ```
 
 ### Type-Check, Compile and Minify for Production

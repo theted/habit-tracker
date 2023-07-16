@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "build-css": "npx tailwindcss -i ./src/input.css -o ./src/assets/output.css",
     "dev": "vite",
     "build": "run-p type-check build-only",
     "preview": "vite preview",
