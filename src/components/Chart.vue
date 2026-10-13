@@ -12,8 +12,8 @@ import { Bar } from 'vue-chartjs'
 import * as chartConfig from './chartConfig.ts'
 
 const props = defineProps<{
-  inputData: any
-  labels: any
+  inputData: number[]
+  labels: (string | number)[]
 }>()
 
 ChartJS.register(Title, Tooltip, BarElement, CategoryScale, LinearScale)

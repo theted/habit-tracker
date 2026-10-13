@@ -1,11 +1,13 @@
+import type { ChartData } from 'chart.js'
 import { getGradient } from '@/helpers/getGradient'
 
-export const data = {
+export const data: ChartData<'bar'> = {
+  labels: [],
   datasets: [
     {
-      backgroundColor: function (context: { chart: any }) {
-        const chart = context.chart
-        const { ctx, chartArea } = chart
+      data: [],
+      backgroundColor: function (context) {
+        const { ctx, chartArea } = context.chart
 
         if (!chartArea) return
 

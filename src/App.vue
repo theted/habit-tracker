@@ -16,7 +16,7 @@ import { RouterLink, RouterView } from 'vue-router'
     :class="[
       'w-full h-screen',
       'flex items-center justify-center items-grow',
-      'bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500'
+      'bg-linear-to-r from-blue-900 via-blue-700 to-blue-500'
     ]"
   >
     <div class="w-full max-w-8xl p-12">

@@ -6,19 +6,20 @@ import Button from '@/components/Button.vue'
 import Text from '@/components/Text.vue'
 import { incrementTrack } from '@/api'
 import AnimatedCounter from '@/components/AnimatedCounter.vue'
+import type { HabitSummary } from '@/types'
 
 const props = defineProps<{
   id: number
   title?: string
   target?: number
   count?: number
-  habit: any
+  habit: HabitSummary
 }>()
 
 const localCount = ref(props.count || 0)
 
 const addTrack = () => {
-  incrementTrack(props.id).then((result) => {
+  incrementTrack(props.id).then(() => {
     localCount.value += 1
   })
 }

@@ -30,17 +30,18 @@ import { deleteHabit, getHabit } from '@/api'
 import { intervals, Days, Months } from '@/enums'
 import { calculateDates } from '@/helpers/date'
 import { useRoute, useRouter } from 'vue-router'
+import type { HabitWithTracks } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const { id } = route.params
+const id = Number(route.params.id)
 
-const title = ref()
-const dates = ref([])
-const labels = ref([])
-const sortData = ref({})
-const habitData = ref([])
-const actualHabits = ref()
+const title = ref('')
+const dates = ref<string[]>([])
+const labels = ref<(string | number)[]>([])
+const sortData = ref<ReturnType<typeof calculateDates>>()
+const habitData = ref<number[]>([])
+const actualHabits = ref<HabitWithTracks>()
 const selectedValue = ref('')
 
 const hourLabel = new Array(24).fill(0).map((_, i) => i)
@@ -49,6 +50,8 @@ const dayOfMonthLabel = new Array(31).fill(0).map((_, i) => i)
 const monthLabel = Object.values(Months).filter((v) => isNaN(Number(v)))
 
 const setSelect = (interval: string) => {
+  if (!sortData.value) return
+
   switch (interval) {
     case 'hour':
       habitData.value = sortData.value.occurrencesByHour

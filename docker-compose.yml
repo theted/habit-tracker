@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    init: true
+    environment:
+      HABITS_PASSWORD: ${HABITS_PASSWORD:?set HABITS_PASSWORD in .env}
+    volumes:
+      - habits_data:/data
+    # Localhost only: on the box the host nginx terminates TLS in front of this. 8087 is claimed in
+    # the port registry in theted/infrastructure (the-box.md).
+    ports:
+      - '127.0.0.1:8087:3100'
+    restart: unless-stopped
+volumes:
+  habits_data:

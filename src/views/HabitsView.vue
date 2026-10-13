@@ -19,7 +19,7 @@
 
   <Modal :show="showModal" @update:show="showModal = $event">
     <slot>
-      <HabitForm v-slot:default="{ closeModal }" :close-modal="closeModal" />
+      <HabitForm :close-modal="closeModal" />
     </slot>
   </Modal>
 </template>
@@ -31,9 +31,10 @@ import Modal from '../components/Modal.vue'
 import HabitForm from '../views/HabitForm.vue'
 import { onMounted, ref } from 'vue'
 import { getHabits } from '@/api'
+import type { HabitSummary } from '@/types'
 
 const showModal = ref(false)
-const actualHabits = ref()
+const actualHabits = ref<HabitSummary[]>([])
 
 const closeModal = () => {
   showModal.value = false

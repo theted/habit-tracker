@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 defineProps<{
-  data: any
+  data: unknown
   label?: string
 }>()
 </script>

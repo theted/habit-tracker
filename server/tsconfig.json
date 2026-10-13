@@ -1,0 +1,10 @@
+{
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": ["./**/*.ts"],
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../dist-server",
+    "types": ["node"],
+    "sourceMap": true
+  }
+}

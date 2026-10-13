@@ -7,7 +7,7 @@
       <TextField name="target" type="number" v-if="checked" v-model="form.target" required />
 
       <Layout>
-        <Button @click="submitForm">Save</Button>
+        <Button type="submit">Save</Button>
         <Button variant="error" @click="closeModal">Close</Button>
       </Layout>
     </form>
@@ -38,11 +38,7 @@ defineProps({
 })
 
 const submitForm = async () => {
-  const result = await createHabit({
-    // bit of a hack for now
-    userId: 1,
-    ...form.value
-  })
+  const result = await createHabit({ title: form.value.title })
   console.log({ result })
 
   // closeModal()
