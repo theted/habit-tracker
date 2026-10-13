@@ -1,14 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <link
-      href="https://fonts.googleapis.com/css?family=Poppins:400,700&display=swap"
-      rel="stylesheet"
-    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Habit Tracker</title>
+    <meta name="description" content="Keep count of your habits, good and bad." />
+    <meta name="theme-color" content="#fafafb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Habits</title>
+    <script>
+      // Apply the saved theme before the first paint (see src/composables/useTheme.ts)
+      try {
+        const mode = localStorage.getItem('habits-theme') || 'auto'
+        const dark =
+          mode === 'dark' ||
+          (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.add(dark ? 'dark' : 'light')
+      } catch {}
+    </script>
   </head>
   <body>
     <div id="app"></div>
