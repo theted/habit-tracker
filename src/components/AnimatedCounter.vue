@@ -8,14 +8,14 @@ const props = defineProps({
   }
 })
 
-let displayCount = ref(props.count)
-let animated = ref(false)
+const displayCount = ref(props.count)
+const animated = ref(false)
 
 watch(
   () => props.count,
   (newVal) => {
     animated.value = true
-    let intervalId = setInterval(() => {
+    const intervalId = setInterval(() => {
       if (displayCount.value < newVal) {
         displayCount.value++
       } else {

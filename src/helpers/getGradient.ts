@@ -1,3 +1,5 @@
+import type { ChartArea } from 'chart.js'
+
 export const CHART_COLORS = {
   red: 'rgb(255, 99, 132)',
   orange: 'rgb(255, 159, 64)',
@@ -8,25 +10,11 @@ export const CHART_COLORS = {
   grey: 'rgb(201, 203, 207)'
 } as const
 
-interface ChartArea {
-  right: number
-  left: number
-  bottom: number
-  top: number
-}
+let width: number | undefined
+let height: number | undefined
+let gradient: CanvasGradient | undefined
 
-interface Gradient {
-  addColorStop(position: number, color: string): void
-}
-
-interface Context2D {
-  createLinearGradient(x0: number, y0: number, x1: number, y1: number): Gradient
-}
-
-export function getGradient(ctx: Context2D, chartArea: ChartArea): Gradient {
-  let width: number, height: number
-  let gradient: Gradient | undefined
-
+export function getGradient(ctx: CanvasRenderingContext2D, chartArea: ChartArea): CanvasGradient {
   const chartWidth = chartArea.right - chartArea.left
   const chartHeight = chartArea.bottom - chartArea.top
 

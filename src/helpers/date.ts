@@ -21,7 +21,7 @@ export const countOccurrencesByMonth = (dates: string[]): { [key: number]: numbe
   return countOccurrences(daysOfMonth)
 }
 
-export const calculateDates = (dates: Date[]) => ({
+export const calculateDates = (dates: string[]) => ({
   occurrencesByHour: fillArray(countOccurrencesByHour(dates), 24),
   occurrencesByDayOfWeek: fillArray(countOccurrencesByDayOfWeek(dates), 7),
   occurrencesByDayOfMonth: fillArray(countOccurrencesByDayOfMonth(dates), 31),

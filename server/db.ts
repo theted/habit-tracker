@@ -1,8 +1,15 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaClient } from './generated/prisma/client.js'
 
-const prisma = new PrismaClient()
+if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
 
-const getUsers = async () => prisma.user.findMany()
+const prisma = new PrismaClient({
+  adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL })
+})
+
+// Every habit belongs to the single owner row created by the owner_user migration, until the app
+// has real accounts.
+const OWNER_ID = 1
 
 const getHabits = async () =>
   prisma.habit.findMany({
@@ -27,16 +34,13 @@ const getHabit = async (id: number) =>
     }
   })
 
-const createHabit = async (title: string, userId: number) => {
-  const habit = await prisma.habit.create({
+const createHabit = async (title: string) =>
+  prisma.habit.create({
     data: {
       title,
-      user: { connect: { id: userId } }
+      user: { connect: { id: OWNER_ID } }
     }
   })
-
-  return habit
-}
 
 const deleteHabit = async (id: number) => {
   // delete tracks for habit first
@@ -46,14 +50,10 @@ const deleteHabit = async (id: number) => {
     }
   })
 
-  const habit = await prisma.habit.delete({
+  return prisma.habit.delete({
     where: { id }
   })
-
-  return habit
 }
-
-const getTracks = async () => prisma.track.findMany()
 
 const addTrack = async (habitId: number) =>
   prisma.track.create({
@@ -62,4 +62,4 @@ const addTrack = async (habitId: number) =>
     }
   })
 
-export { getUsers, getHabits, getHabit, createHabit, deleteHabit, getTracks, addTrack }
+export { getHabits, getHabit, createHabit, deleteHabit, addTrack }

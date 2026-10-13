@@ -5,13 +5,13 @@
       :id="name"
       :value="value"
       @change="updateValue"
-      class="p-4 text-lg bg-gray-100 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      class="p-4 text-lg bg-gray-100 rounded-lg border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-200"
     >
       <option
         v-for="option in options"
         :key="option.value"
         :value="option.value"
-        :selected="defaultValue"
+        :selected="option.value === defaultValue"
       >
         {{ option.text }}
       </option>
@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from 'vue'
+import { ref, watchEffect, type PropType } from 'vue'
 
 const props = defineProps({
   name: {
@@ -32,7 +32,7 @@ const props = defineProps({
     default: ''
   },
   options: {
-    type: Array,
+    type: Array as PropType<{ value: string; text: string }[]>,
     required: true
   }
 })

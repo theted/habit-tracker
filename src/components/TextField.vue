@@ -3,9 +3,10 @@
     <Label :name="name" />
     <input
       :id="name"
+      :type="type"
       :value="value"
       @input="updateValue"
-      class="p-4 text-lg bg-gray-100 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      class="p-4 text-lg bg-gray-100 rounded-lg border border-gray-300 focus:outline-hidden focus:ring-2 focus:ring-blue-200"
     />
   </div>
 </template>
@@ -22,6 +23,10 @@ const props = defineProps({
   defaultValue: {
     type: String,
     default: ''
+  },
+  type: {
+    type: String,
+    default: 'text'
   }
 })
 
