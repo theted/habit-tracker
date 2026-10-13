@@ -1,0 +1,42 @@
+# Lint, type-check, build and test every pull request and every push to master.
+# Pushes to master then deploy to the shared EC2 box, but only once the tests pass.
+#
+# The deploy lives in theted/workflows: it SSHes in, checks out the triggering
+# commit under /opt/habit-tracker and rebuilds the compose stack in place.
+# Secrets (EC2_HOST, EC2_USER, EC2_SSH_KEY) are inherited from the repo's
+# Actions secrets. The conventions it follows - port registry, deploy roots,
+# nginx - are documented in the private theted/infrastructure repo.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:check
+      # prebuild generates the Prisma client; build type-checks the client, the server and the tests
+      - run: npm run build
+      - run: npm test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    uses: theted/workflows/.github/workflows/deploy-ec2.yml@master
+    with:
+      app-dir: /opt/habit-tracker
+    secrets: inherit

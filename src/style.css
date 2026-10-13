@@ -1,0 +1,205 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic colours, swapped wholesale for dark mode */
+:root {
+  color-scheme: light;
+  --bg: oklch(98.4% 0.003 286);
+  --surface: oklch(100% 0 0);
+  --surface-2: oklch(96.5% 0.004 286);
+  --line: oklch(91.5% 0.006 286);
+  --fg: oklch(21% 0.006 286);
+  --muted: oklch(54% 0.014 286);
+  --shadow: 0 1px 2px oklch(0% 0 0 / 0.04), 0 6px 20px -6px oklch(0% 0 0 / 0.1);
+  --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.05), 0 16px 36px -10px oklch(0% 0 0 / 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: oklch(14.5% 0.005 286);
+  --surface: oklch(19% 0.006 286);
+  --surface-2: oklch(24% 0.007 286);
+  --line: oklch(100% 0 0 / 0.09);
+  --fg: oklch(96.5% 0.002 286);
+  --muted: oklch(70% 0.012 286);
+  --shadow: 0 1px 2px oklch(0% 0 0 / 0.4), 0 8px 24px -8px oklch(0% 0 0 / 0.6);
+  --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.4), 0 18px 40px -12px oklch(0% 0 0 / 0.75);
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  /* A habit's accent, set per element through style="--habit: …" (src/lib/colors.ts) */
+  --color-habit: var(--habit, oklch(60.6% 0.25 292.717));
+  --shadow-card: var(--shadow);
+  --shadow-lifted: var(--shadow-lifted);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    transition:
+      background-color 250ms ease,
+      color 250ms ease;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--habit, oklch(60.6% 0.25 292.717));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--habit, oklch(60.6% 0.25 292.717)) 30%, transparent);
+  }
+}
+
+/* Route changes */
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 260ms var(--ease-spring);
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Habit cards and other lists */
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition:
+    opacity 260ms ease,
+    transform 360ms var(--ease-spring);
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+/* Toasts */
+.toast-move,
+.toast-enter-active,
+.toast-leave-active {
+  transition:
+    opacity 220ms ease,
+    transform 320ms var(--ease-spring);
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+.toast-leave-active {
+  position: absolute;
+}
+
+/* Native <dialog>: fades and lifts in, and back out, using @starting-style and allow-discrete */
+dialog.sheet {
+  opacity: 0;
+  transform: translateY(12px) scale(0.97);
+  transition:
+    opacity 200ms ease,
+    transform 280ms var(--ease-spring),
+    overlay 280ms allow-discrete,
+    display 280ms allow-discrete;
+}
+dialog.sheet[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  dialog.sheet[open] {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+dialog.sheet::backdrop {
+  background: oklch(0% 0 0 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 250ms ease,
+    backdrop-filter 250ms ease,
+    overlay 280ms allow-discrete,
+    display 280ms allow-discrete;
+}
+dialog.sheet[open]::backdrop {
+  background: oklch(0% 0 0 / 0.45);
+  backdrop-filter: blur(4px);
+}
+@starting-style {
+  dialog.sheet[open]::backdrop {
+    background: oklch(0% 0 0 / 0);
+    backdrop-filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Small badges popping in and out */
+.pop-enter-active {
+  animation: pop-in 320ms var(--ease-spring);
+}
+.pop-leave-active {
+  animation: pop-in 160ms ease reverse;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
+/* Lists enter one item after another; --i is set per item */
+.list-enter-active {
+  transition-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* A wrong password shakes the card */
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+.shake {
+  animation: shake 360ms ease;
+}

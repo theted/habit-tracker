@@ -1,96 +1,37 @@
-<template>
-  <Box>
-    <div class="p-3 border-b border-gray-300">
-      <Text variant="title">{{ title }}</Text>
-    </div>
-
-    <div class="p-6 border-b border-gray-200">
-      <Layout>
-        <Select name="interval" :options="intervals" v-model="selectedValue" default-value="hour" />
-        <Layout class="self-end" :columns="3">
-          <Button @click="console.log('add!')" variant="success">Add</Button>
-          <Button @click="console.log('edit!')">Edit</Button>
-          <Button @click="deleteHabitCallback()" variant="danger">Delete</Button>
-        </Layout>
-      </Layout>
-    </div>
-    <Chart :input-data="habitData" :labels="labels" />
-  </Box>
-</template>
-
 <script setup lang="ts">
-import Box from '@/components/Box.vue'
-import Layout from '@/components/Layout.vue'
-import Text from '@/components/Text.vue'
-import Button from '@/components/Button.vue'
-import Select from '@/components/Select.vue'
-import Chart from '@/components/Chart.vue'
-import { onMounted, ref, watch } from 'vue'
-import { deleteHabit, getHabit } from '@/api'
-import { intervals, Days, Months } from '@/enums'
-import { calculateDates } from '@/helpers/date'
-import { useRoute, useRouter } from 'vue-router'
-import type { HabitWithTracks } from '@/types'
+import { computed, onMounted } from 'vue'
+import HabitDetail from '../components/HabitDetail.vue'
+import { buttonClass } from '../components/ui/button'
+import { useHabitsStore } from '../stores/habits'
+import { useToastStore } from '../stores/toasts'
 
-const route = useRoute()
-const router = useRouter()
-const id = Number(route.params.id)
+const { id } = defineProps<{ id: string }>()
 
-const title = ref('')
-const dates = ref<string[]>([])
-const labels = ref<(string | number)[]>([])
-const sortData = ref<ReturnType<typeof calculateDates>>()
-const habitData = ref<number[]>([])
-const actualHabits = ref<HabitWithTracks>()
-const selectedValue = ref('')
-
-const hourLabel = new Array(24).fill(0).map((_, i) => i)
-const weekLabel = Object.values(Days).filter((v) => isNaN(Number(v)))
-const dayOfMonthLabel = new Array(31).fill(0).map((_, i) => i)
-const monthLabel = Object.values(Months).filter((v) => isNaN(Number(v)))
-
-const setSelect = (interval: string) => {
-  if (!sortData.value) return
-
-  switch (interval) {
-    case 'hour':
-      habitData.value = sortData.value.occurrencesByHour
-      labels.value = hourLabel
-      break
-    case 'dayOfWeek':
-      habitData.value = sortData.value.occurrencesByDayOfWeek
-      labels.value = weekLabel
-      break
-    case 'dayOfMonth':
-      habitData.value = sortData.value.occurrencesByDayOfMonth
-      labels.value = dayOfMonthLabel
-      break
-    case 'month':
-      habitData.value = sortData.value.occurrencesByMonth
-      labels.value = monthLabel
-      break
+const store = useHabitsStore()
+const toasts = useToastStore()
+onMounted(() => {
+  if (store.status === 'idle') {
+    store.load().catch((err) => toasts.error(err, "Couldn't load the habit"))
   }
-}
-
-const deleteHabitCallback = async () => {
-  if (confirm('Are you sure you want to delete this habit?')) {
-    const res = await deleteHabit(id)
-    console.log({ res })
-    router.push({ path: '/' })
-  }
-}
-
-onMounted(async () => {
-  const habit = await getHabit(id)
-  const trackDates = habit.data.tracks.map((track) => track.date)
-
-  actualHabits.value = habit.data
-  title.value = habit.data.title
-  dates.value = trackDates
-  sortData.value = calculateDates(trackDates)
-
-  setSelect('hour')
 })
 
-watch(selectedValue, (newVal) => setSelect(newVal))
+const habit = computed(() => store.byId(Number(id)))
+const loading = computed(() => store.status === 'idle' || store.status === 'loading')
 </script>
+
+<template>
+  <HabitDetail v-if="habit" :habit />
+  <div v-else-if="loading" class="mx-auto grid max-w-5xl gap-5 px-4 py-10 sm:px-6" aria-busy="true">
+    <div class="h-5 w-24 animate-pulse rounded-lg bg-surface-2" />
+    <div class="h-36 animate-pulse rounded-3xl bg-surface-2" />
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div v-for="i in 6" :key="i" class="h-20 animate-pulse rounded-2xl bg-surface-2" />
+    </div>
+    <div class="h-56 animate-pulse rounded-3xl bg-surface-2" />
+  </div>
+  <div v-else class="mx-auto grid max-w-md justify-items-center gap-4 px-4 py-24 text-center">
+    <h1 class="text-2xl font-semibold tracking-tight">Habit not found</h1>
+    <p class="text-muted">It may have been deleted.</p>
+    <RouterLink to="/" :class="buttonClass('primary')">Back to your habits</RouterLink>
+  </div>
+</template>

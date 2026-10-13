@@ -1,6 +1,7 @@
 {
   "extends": "@tsconfig/node24/tsconfig.json",
   "include": ["./**/*.ts"],
+  "exclude": ["./**/*.test.ts", "./test/**"],
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "../dist-server",
