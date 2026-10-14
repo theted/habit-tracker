@@ -20,8 +20,24 @@ const toasts = useToastStore()
 type FormState = { title: string; description: string; emoji: string; color: HabitColor }
 
 const EMOJIS = [
-  '✨', '💧', '📚', '🏃', '🧘', '☕', '🥗', '💤', '🏋️',
-  '🚶', '🎸', '✍️', '🧹', '💊', '🦷', '🌱', '🍎', '🚭'
+  '✨',
+  '💧',
+  '📚',
+  '🏃',
+  '🧘',
+  '☕',
+  '🥗',
+  '💤',
+  '🏋️',
+  '🚶',
+  '🎸',
+  '✍️',
+  '🧹',
+  '💊',
+  '🦷',
+  '🌱',
+  '🍎',
+  '🚭'
 ]
 
 const form = reactive<FormState>({ title: '', description: '', emoji: '✨', color: 'violet' })
@@ -145,7 +161,10 @@ const submit = async () => {
             :aria-checked="form.color === color"
             :aria-label="color"
             class="size-8 rounded-full bg-habit transition duration-200 ease-spring hover:scale-110"
-            :class="form.color === color && 'scale-110 ring-2 ring-habit ring-offset-2 ring-offset-surface'"
+            :class="
+              form.color === color &&
+              'scale-110 ring-2 ring-habit ring-offset-2 ring-offset-surface'
+            "
             :style="habitStyle(color)"
             @click="form.color = color"
           />

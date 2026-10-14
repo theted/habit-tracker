@@ -8,9 +8,38 @@ export const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL })
 })
 
-// Every habit belongs to the single owner row created by the owner_user migration, until the app
-// has real accounts.
-const OWNER_ID = 1
+// Thrown when a row doesn't exist or belongs to someone else; both are a 404, so the API never
+// confirms that another user's habit exists
+export class NotFoundError extends Error {}
+
+// P2025: the row to update or delete doesn't exist (or isn't the user's)
+export const isNotFound = (err: unknown) =>
+  err instanceof NotFoundError ||
+  (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025')
+
+// P2002: a unique constraint, which for users means the username is taken
+export const isTaken = (err: unknown) =>
+  err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002'
+
+// Users
+
+export const publicUser = { id: true, username: true, createdAt: true } satisfies Prisma.UserSelect
+
+export const findUserByUsername = (username: string) =>
+  prisma.user.findUnique({ where: { username } })
+
+export const findUserById = (id: number) => prisma.user.findUnique({ where: { id } })
+
+export const createUser = (username: string, passwordHash: string) =>
+  prisma.user.create({ data: { username, passwordHash }, select: publicUser })
+
+export const updateUser = (id: number, data: { username?: string; passwordHash?: string }) =>
+  prisma.user.update({ where: { id }, data, select: publicUser })
+
+// Habits, entries and sessions go with it (onDelete: Cascade)
+export const deleteUser = (id: number) => prisma.user.delete({ where: { id } })
+
+// Habits and entries, always scoped to the user asking
 
 // What the API returns for a habit: its fields plus every entry, oldest first. Stats are computed
 // in the browser, where "today" means the viewer's day rather than the server's.
@@ -29,29 +58,35 @@ const habitSelect = {
 
 const trackSelect = { id: true, habitId: true, date: true } satisfies Prisma.TrackSelect
 
-export const listHabits = () =>
-  prisma.habit.findMany({ select: habitSelect, orderBy: { id: 'asc' } })
+export const listHabits = (userId: number) =>
+  prisma.habit.findMany({ where: { userId }, select: habitSelect, orderBy: { id: 'asc' } })
 
-export const getHabit = (id: number) =>
-  prisma.habit.findUnique({ where: { id }, select: habitSelect })
+export const getHabit = (userId: number, id: number) =>
+  prisma.habit.findFirst({ where: { id, userId }, select: habitSelect })
 
-export const createHabit = (input: HabitCreate) =>
+export const createHabit = (userId: number, input: HabitCreate) =>
   prisma.habit.create({
-    data: { ...input, user: { connect: { id: OWNER_ID } } },
+    data: { ...input, user: { connect: { id: userId } } },
     select: habitSelect
   })
 
-export const updateHabit = (id: number, input: HabitUpdate) =>
-  prisma.habit.update({ where: { id }, data: input, select: habitSelect })
+export const updateHabit = (userId: number, id: number, input: HabitUpdate) =>
+  prisma.habit.update({ where: { id, userId }, data: input, select: habitSelect })
 
 // Its entries go with it (onDelete: Cascade)
-export const deleteHabit = (id: number) => prisma.habit.delete({ where: { id } })
+export const deleteHabit = (userId: number, id: number) =>
+  prisma.habit.delete({ where: { id, userId } })
 
-export const addTrack = (habitId: number, date?: Date) =>
-  prisma.track.create({ data: { habitId, ...(date && { date }) }, select: trackSelect })
+export const addTrack = async (userId: number, habitId: number, date?: Date) => {
+  const habit = await prisma.habit.findFirst({
+    where: { id: habitId, userId },
+    select: { id: true }
+  })
+  if (!habit) throw new NotFoundError()
+  return prisma.track.create({ data: { habitId, ...(date && { date }) }, select: trackSelect })
+}
 
-export const deleteTrack = (id: number) => prisma.track.delete({ where: { id } })
-
-// P2025: the row to update or delete doesn't exist. P2003: a track for a habit that doesn't.
-export const isNotFound = (err: unknown) =>
-  err instanceof Prisma.PrismaClientKnownRequestError && ['P2025', 'P2003'].includes(err.code)
+export const deleteTrack = async (userId: number, id: number) => {
+  const { count } = await prisma.track.deleteMany({ where: { id, habit: { userId } } })
+  if (!count) throw new NotFoundError()
+}

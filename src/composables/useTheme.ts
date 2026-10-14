@@ -1,11 +1,16 @@
 import { createSharedComposable, useColorMode } from '@vueuse/core'
 
-// 'auto' follows the system. The key is also read by the inline script in index.html, which sets
+// 'auto' follows the system. The key is also read by the script public/theme.js, which sets
 // the class before the app loads so the page doesn't flash light first.
 export const THEME_KEY = 'habits-theme'
 
 export const useTheme = createSharedComposable(() => {
-  const mode = useColorMode({ storageKey: THEME_KEY, initialValue: 'auto' })
+  // disableTransition would inject a <style> element, which the Content-Security-Policy forbids
+  const mode = useColorMode({
+    storageKey: THEME_KEY,
+    initialValue: 'auto',
+    disableTransition: false
+  })
   return {
     // 'auto' | 'light' | 'dark', as chosen
     preference: mode.store,

@@ -8,9 +8,11 @@ import AppButton from '../components/ui/AppButton.vue'
 import { useMinuteClock } from '../composables/useMinuteClock'
 import { dayKey } from '../lib/stats'
 import { useHabitsStore } from '../stores/habits'
+import { useSessionStore } from '../stores/session'
 import { useToastStore } from '../stores/toasts'
 
 const store = useHabitsStore()
+const session = useSessionStore()
 const toasts = useToastStore()
 const creating = ref(false)
 
@@ -22,10 +24,16 @@ onMounted(() => {
 const now = useMinuteClock()
 const greeting = computed(() => {
   const hour = now.value.getHours()
-  if (hour < 5) return 'Good night'
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
+  const time =
+    hour < 5
+      ? 'Good night'
+      : hour < 12
+        ? 'Good morning'
+        : hour < 18
+          ? 'Good afternoon'
+          : 'Good evening'
+  const name = session.user?.username
+  return name ? `${time}, ${name.charAt(0).toUpperCase()}${name.slice(1)}` : time
 })
 
 const today = computed(() => {
@@ -118,12 +126,7 @@ const progress = computed(() =>
       appear
       class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <HabitCard
-        v-for="(habit, i) in store.habits"
-        :key="habit.id"
-        :habit
-        :style="{ '--i': i }"
-      />
+      <HabitCard v-for="(habit, i) in store.habits" :key="habit.id" :habit :style="{ '--i': i }" />
     </TransitionGroup>
 
     <HabitFormDialog v-model:open="creating" />

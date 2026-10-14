@@ -1,6 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { getPassword } from '../auth'
+import { useSessionStore } from '../stores/session'
 import HomeView from '../views/HomeView.vue'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    // Open to visitors who aren't logged in
+    public?: boolean
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,14 +22,25 @@ const router = createRouter({
     // The 2023 app's address for a habit
     { path: '/habit/:id(\\d+)', redirect: (to) => ({ name: 'habit', params: to.params }) },
     { path: '/settings', name: 'settings', component: () => import('../views/SettingsView.vue') },
-    { path: '/login', name: 'login', component: () => import('../views/LoginView.vue') },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/AuthView.vue'),
+      meta: { public: true }
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
   scrollBehavior: (_to, _from, saved) => saved ?? { top: 0 }
 })
 
-router.beforeEach((to) => {
-  if (to.name !== 'login' && !getPassword()) {
+router.beforeEach(async (to) => {
+  const session = useSessionStore()
+  await session.ensureLoaded().catch(() => {})
+  if (to.meta.public) {
+    // Someone already logged in has no business on the login page
+    return session.user ? { name: 'home' } : true
+  }
+  if (!session.user) {
     return { name: 'login', query: to.fullPath === '/' ? {} : { next: to.fullPath } }
   }
 })

@@ -28,7 +28,9 @@ const fortnight = computed(() => lastDays(days.value, 14, now.value).map((day) =
       :aria-label="`${habit.title}: statistics and history`"
     />
     <div class="flex items-start gap-3">
-      <span class="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-habit/15 text-2xl">
+      <span
+        class="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-habit/15 text-2xl"
+      >
         {{ habit.emoji }}
         <Transition name="pop">
           <span

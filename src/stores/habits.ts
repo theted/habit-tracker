@@ -84,5 +84,23 @@ export const useHabitsStore = defineStore('habits', () => {
     return removed
   }
 
-  return { habits, status, byId, load, ensureLoaded, create, update, remove, track, untrack }
+  // For logging out, or in as someone else
+  const reset = () => {
+    habits.value = []
+    status.value = 'idle'
+  }
+
+  return {
+    habits,
+    status,
+    byId,
+    load,
+    ensureLoaded,
+    create,
+    update,
+    remove,
+    track,
+    untrack,
+    reset
+  }
 })
