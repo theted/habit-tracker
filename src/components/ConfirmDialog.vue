@@ -3,7 +3,12 @@ import AppButton from './ui/AppButton.vue'
 import BaseDialog from './ui/BaseDialog.vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const { title, message, confirmLabel, busy = false } = defineProps<{
+const {
+  title,
+  message,
+  confirmLabel,
+  busy = false
+} = defineProps<{
   title: string
   message: string
   confirmLabel: string

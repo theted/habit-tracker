@@ -2,7 +2,13 @@
 import type { Component } from 'vue'
 import AnimatedNumber from './ui/AnimatedNumber.vue'
 
-const { label, value, decimals = 0, unit, icon } = defineProps<{
+const {
+  label,
+  value,
+  decimals = 0,
+  unit,
+  icon
+} = defineProps<{
   label: string
   value: number
   decimals?: number

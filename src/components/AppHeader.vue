@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { Check, Moon, Sun } from '@lucide/vue'
 import { useTheme } from '../composables/useTheme'
+import { useSessionStore } from '../stores/session'
 
 const theme = useTheme()
-
-const links = [
-  { to: { name: 'home' }, label: 'Habits' },
-  { to: { name: 'settings' }, label: 'Settings' }
-]
+const session = useSessionStore()
 </script>
 
 <template>
@@ -23,18 +20,18 @@ const links = [
       </RouterLink>
       <nav class="ml-auto flex items-center gap-1 text-sm" aria-label="Main">
         <RouterLink
-          v-for="link in links"
-          :key="link.label"
-          :to="link.to"
+          :to="{ name: 'home' }"
           class="rounded-lg px-3 py-1.5 font-medium text-muted transition hover:bg-surface-2 hover:text-fg"
           exact-active-class="bg-surface-2 text-fg"
         >
-          {{ link.label }}
+          Habits
         </RouterLink>
         <button
           type="button"
           class="ml-1 grid size-9 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-fg"
-          :aria-label="theme.resolved.value === 'dark' ? 'Use the light theme' : 'Use the dark theme'"
+          :aria-label="
+            theme.resolved.value === 'dark' ? 'Use the light theme' : 'Use the dark theme'
+          "
           @click="theme.toggle"
         >
           <Transition
@@ -48,6 +45,21 @@ const links = [
             <Moon v-else class="size-4" aria-hidden="true" />
           </Transition>
         </button>
+        <RouterLink
+          v-if="session.user"
+          :to="{ name: 'settings' }"
+          class="ml-1 flex items-center gap-2 rounded-full py-1 pr-1 pl-1 font-medium text-muted transition hover:bg-surface-2 hover:text-fg sm:pr-3"
+          exact-active-class="bg-surface-2 text-fg"
+          :aria-label="`Settings for ${session.user.username}`"
+        >
+          <span
+            class="grid size-7 place-items-center rounded-full bg-linear-to-br from-violet-500 to-fuchsia-500 text-xs font-semibold text-white uppercase"
+            aria-hidden="true"
+          >
+            {{ session.user.username.charAt(0) }}
+          </span>
+          <span class="hidden max-w-32 truncate sm:inline">{{ session.user.username }}</span>
+        </RouterLink>
       </nav>
     </div>
   </header>

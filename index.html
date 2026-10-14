@@ -8,16 +8,8 @@
     <meta name="theme-color" content="#0e0e11" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Habits</title>
-    <script>
-      // Apply the saved theme before the first paint (see src/composables/useTheme.ts)
-      try {
-        const mode = localStorage.getItem('habits-theme') || 'auto'
-        const dark =
-          mode === 'dark' ||
-          (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
-        document.documentElement.classList.add(dark ? 'dark' : 'light')
-      } catch {}
-    </script>
+    <!-- A file rather than inline, so the Content-Security-Policy can forbid inline scripts -->
+    <script src="/theme.js"></script>
   </head>
   <body>
     <div id="app"></div>

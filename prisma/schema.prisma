@@ -8,10 +8,26 @@ datasource db {
 }
 
 model User {
-  id     Int     @id @default(autoincrement())
-  email  String  @unique
-  name   String?
-  habits Habit[]
+  id           Int       @id @default(autoincrement())
+  // Stored lowercase; usernames are case-insensitive
+  username     String    @unique
+  // Argon2id, as a PHC string. Null until a password is set: the owner from before accounts
+  // existed starts that way (see server/legacy.ts).
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+  habits       Habit[]
+  sessions     Session[]
+}
+
+model Session {
+  // SHA-256 of the token in the cookie, so a copy of the database can't be used to log in
+  id        String   @id
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Habit {
@@ -21,9 +37,11 @@ model Habit {
   emoji       String   @default("✨")
   color       String   @default("violet")
   createdAt   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      Int
   tracks      Track[]
+
+  @@index([userId])
 }
 
 model Track {

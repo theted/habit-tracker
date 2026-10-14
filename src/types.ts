@@ -23,3 +23,14 @@ export interface HabitInput {
   emoji?: string
   color?: HabitColor
 }
+
+export interface User {
+  id: number
+  username: string
+  createdAt: string
+}
+
+export interface AuthStatus {
+  user: User | null
+  signupEnabled: boolean
+}

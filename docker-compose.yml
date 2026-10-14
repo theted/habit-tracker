@@ -3,7 +3,11 @@ services:
     build: .
     init: true
     environment:
-      HABITS_PASSWORD: ${HABITS_PASSWORD:?set HABITS_PASSWORD in .env}
+      # The old shared password: it becomes the "owner" account's password on the first start
+      # after accounts arrived, and does nothing after that (server/legacy.ts)
+      HABITS_PASSWORD: ${HABITS_PASSWORD:-}
+      # open (the default) lets anyone create an account; closed allows logins only
+      SIGNUP: ${SIGNUP:-open}
     volumes:
       - habits_data:/data
     # Localhost only: on the box the host nginx terminates TLS in front of this. 8087 is claimed in

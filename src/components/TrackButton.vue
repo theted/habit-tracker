@@ -4,7 +4,11 @@ import { usePreferredReducedMotion } from '@vueuse/core'
 import { useTemplateRef } from 'vue'
 import { inkClass } from '../lib/colors'
 
-const { label, color, size = 'md' } = defineProps<{
+const {
+  label,
+  color,
+  size = 'md'
+} = defineProps<{
   label: string
   color: string
   size?: 'md' | 'lg'

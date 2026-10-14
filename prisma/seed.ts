@@ -1,11 +1,15 @@
-// Demo data for development: five habits with a year of plausible history, so the heatmap,
-// streaks and charts have something to draw. Leaves a database that already has habits alone.
+// Demo data for development: a "demo" account (password "habits-demo") with five habits and a
+// year of plausible history, so the heatmap, streaks and charts have something to draw. Does
+// nothing if the demo account already exists.
 //
-//   npm run db:seed     seed an empty database
+//   npm run db:seed     add the demo account
 //   npm run db:reset    wipe the dev database, re-apply migrations, then seed
 import 'dotenv/config'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../server/generated/prisma/client.js'
+import { hashPassword } from '../server/passwords.js'
+
+const DEMO = { username: 'demo', password: 'habits-demo' }
 
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? '' })
@@ -91,10 +95,13 @@ const habits: DemoHabit[] = [
 ]
 
 const main = async () => {
-  if (await prisma.habit.count()) {
-    console.log('The database already has habits; not seeding. Use npm run db:reset to start over.')
+  if (await prisma.user.findUnique({ where: { username: DEMO.username } })) {
+    console.log('The demo account already exists; not seeding. npm run db:reset starts over.')
     return
   }
+  const user = await prisma.user.create({
+    data: { username: DEMO.username, passwordHash: await hashPassword(DEMO.password) }
+  })
 
   const now = new Date()
   for (const demo of habits) {
@@ -116,12 +123,13 @@ const main = async () => {
         color: demo.color,
         description: demo.description ?? null,
         createdAt: dates[0] ?? now,
-        userId: 1
+        userId: user.id
       }
     })
     await prisma.track.createMany({ data: dates.map((date) => ({ habitId: id, date })) })
     console.log(`${demo.emoji} ${demo.title}: ${dates.length} entries`)
   }
+  console.log(`Log in as ${DEMO.username} / ${DEMO.password}`)
 }
 
 main()
