@@ -5,6 +5,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { setUnauthorizedHandler } from './api/client'
+import { countVisits } from './lib/visits'
 import router from './router'
 import { useSessionStore } from './stores/session'
 
@@ -20,6 +21,7 @@ const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
+countVisits(router)
 
 // A session that ended (expired, or logged out from another device) sends the user to log in,
 // and back to the same page afterwards

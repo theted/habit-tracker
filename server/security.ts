@@ -22,12 +22,13 @@ export const sameOrigin = (req: Request, res: Response, next: NextFunction) => {
 
 // Everything the app loads comes from its own origin: the scripts, the stylesheet and the fonts
 // are Vite's build output. Inline style attributes are allowed because Vue binds them (:style).
+// The one outside request is the visit counter's image (src/lib/visits.ts).
 const CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self'",
   "style-src-attr 'unsafe-inline'",
-  "img-src 'self' data:",
+  "img-src 'self' data: https://visits.sundbergsolutions.se",
   "font-src 'self'",
   "connect-src 'self'",
   "object-src 'none'",
