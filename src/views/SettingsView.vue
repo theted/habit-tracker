@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ChangePasswordForm from '../components/account/ChangePasswordForm.vue'
+import AgentKeys from '../components/account/AgentKeys.vue'
 import ChangeUsernameForm from '../components/account/ChangeUsernameForm.vue'
 import DeleteAccountDialog from '../components/account/DeleteAccountDialog.vue'
 import AppButton from '../components/ui/AppButton.vue'
@@ -71,6 +72,22 @@ const card = 'rounded-3xl border border-line bg-surface p-6 shadow-card'
         :options="themes"
         label="Theme"
       />
+    </section>
+
+    <section id="agents" :class="card" class="scroll-mt-24">
+      <h2 class="font-semibold">Agents</h2>
+      <p class="mt-1 mb-4 text-sm text-muted">
+        AI agents such as Claude Code can report how working with you is going, over MCP. You'll
+        find what they say on the
+        <RouterLink
+          :to="{ name: 'agents' }"
+          class="font-medium text-fg underline-offset-2 hover:underline"
+        >
+          Agents</RouterLink
+        >
+        page. Give each agent or computer a key of its own.
+      </p>
+      <AgentKeys />
     </section>
 
     <section :class="card">

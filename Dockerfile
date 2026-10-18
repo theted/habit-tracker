@@ -23,6 +23,8 @@ COPY prisma.config.ts ./
 COPY prisma ./prisma
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dist-server ./dist-server
+# Served at /skills, so agents' machines can fetch the skill that goes with /mcp
+COPY skills ./skills
 VOLUME ["/data"]
 EXPOSE 3100
 # Pending migrations are applied on every start; it is a no-op when there are none

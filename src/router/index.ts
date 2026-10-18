@@ -21,6 +21,7 @@ const router = createRouter({
     },
     // The 2023 app's address for a habit
     { path: '/habit/:id(\\d+)', redirect: (to) => ({ name: 'habit', params: to.params }) },
+    { path: '/agents', name: 'agents', component: () => import('../views/AgentsView.vue') },
     { path: '/settings', name: 'settings', component: () => import('../views/SettingsView.vue') },
     {
       path: '/login',
@@ -30,7 +31,7 @@ const router = createRouter({
     },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
-  scrollBehavior: (_to, _from, saved) => saved ?? { top: 0 }
+  scrollBehavior: (to, _from, saved) => saved ?? (to.hash ? { el: to.hash } : { top: 0 })
 })
 
 router.beforeEach(async (to) => {

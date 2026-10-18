@@ -17,6 +17,8 @@ model User {
   createdAt    DateTime  @default(now())
   habits       Habit[]
   sessions     Session[]
+  apiTokens    ApiToken[]
+  moments      Moment[]
 }
 
 model Session {
@@ -51,4 +53,34 @@ model Track {
   habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@index([habitId, date])
+}
+
+// A key an AI agent connects to /mcp with. As with sessions, only the SHA-256 of the token is stored.
+model ApiToken {
+  id         Int       @id @default(autoincrement())
+  hash       String    @unique
+  // What the owner called it, e.g. "Claude Code on the laptop"
+  name       String
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+// Something an AI agent reported about how its work is going (server/mcp.ts)
+model Moment {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // good, annoying, user_annoying or other (MOMENT_KINDS in server/validation.ts)
+  kind    String
+  note    String
+  // Who reported it and where, as the agent put it: "Claude Code (Opus 5.5)", "habit-tracker"
+  agent   String?
+  project String?
+  date    DateTime @default(now())
+
+  @@index([userId, date])
 }

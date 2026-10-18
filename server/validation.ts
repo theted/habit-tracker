@@ -59,6 +59,21 @@ export const id = z.coerce.number().int().positive()
 export type HabitCreate = z.infer<typeof habitCreate>
 export type HabitUpdate = z.infer<typeof habitUpdate>
 
+// What AI agents report over MCP (server/mcp.ts). Keep in step with src/lib/moments.ts.
+export const MOMENT_KINDS = ['good', 'annoying', 'user_annoying', 'other'] as const
+export type MomentKind = (typeof MOMENT_KINDS)[number]
+
+export interface MomentInput {
+  kind: MomentKind
+  note: string
+  agent?: string
+  project?: string
+}
+
+export const tokenCreate = z.object({
+  name: z.string().trim().min(1, 'Give the key a name').max(60)
+})
+
 // Accounts. Usernames are case-insensitive and stored lowercase.
 export const username = z
   .string()

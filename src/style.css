@@ -13,6 +13,12 @@
   --muted: oklch(54% 0.014 286);
   --shadow: 0 1px 2px oklch(0% 0 0 / 0.04), 0 6px 20px -6px oklch(0% 0 0 / 0.1);
   --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.05), 0 16px 36px -10px oklch(0% 0 0 / 0.18);
+  /* What agents report (src/lib/moments.ts): Tailwind's 500s here and 600s in the dark, each set
+     checked for colour-blind separation in the stacking order good, annoying, user, other */
+  --kind-good: oklch(69.6% 0.17 162.48);
+  --kind-annoying: oklch(76.9% 0.188 70.08);
+  --kind-user-annoying: oklch(64.5% 0.246 16.439);
+  --kind-other: oklch(68.5% 0.169 237.323);
 }
 
 .dark {
@@ -25,6 +31,10 @@
   --muted: oklch(70% 0.012 286);
   --shadow: 0 1px 2px oklch(0% 0 0 / 0.4), 0 8px 24px -8px oklch(0% 0 0 / 0.6);
   --shadow-lifted: 0 2px 4px oklch(0% 0 0 / 0.4), 0 18px 40px -12px oklch(0% 0 0 / 0.75);
+  --kind-good: oklch(59.6% 0.145 163.225);
+  --kind-annoying: oklch(66.6% 0.179 58.318);
+  --kind-user-annoying: oklch(58.6% 0.253 17.585);
+  --kind-other: oklch(58.8% 0.158 241.966);
 }
 
 @theme inline {

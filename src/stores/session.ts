@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { authApi } from '../api/auth'
 import type { User } from '../types'
 import { useHabitsStore } from './habits'
+import { useMomentsStore } from './moments'
 
 // Who is logged in. The session itself is an HttpOnly cookie the page can't read, so this asks the
 // server once, then follows logins and logouts.
@@ -25,8 +26,13 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   // Someone else's habits must never linger in memory
+  const forget = () => {
+    useHabitsStore().reset()
+    useMomentsStore().reset()
+  }
+
   const signIn = (next: User) => {
-    if (user.value?.id !== next.id) useHabitsStore().reset()
+    if (user.value?.id !== next.id) forget()
     user.value = next
   }
 
@@ -39,7 +45,7 @@ export const useSessionStore = defineStore('session', () => {
   // Forgets the user here; for when the server has already ended the session
   const clear = () => {
     user.value = null
-    useHabitsStore().reset()
+    forget()
   }
 
   const logout = async () => {

@@ -1,4 +1,5 @@
 import type { HabitColor } from './lib/colors'
+import type { MomentKind } from './lib/moments'
 
 // Shapes returned by the API (server/db.ts). Dates arrive as ISO strings.
 export interface Track {
@@ -33,4 +34,22 @@ export interface User {
 export interface AuthStatus {
   user: User | null
   signupEnabled: boolean
+}
+
+// Something an AI agent reported over MCP (server/mcp.ts)
+export interface Moment {
+  id: number
+  kind: MomentKind
+  note: string
+  agent: string | null
+  project: string | null
+  date: string
+}
+
+// A key for /mcp. The secret itself only comes back once, from create.
+export interface ApiToken {
+  id: number
+  name: string
+  createdAt: string
+  lastUsedAt: string | null
 }

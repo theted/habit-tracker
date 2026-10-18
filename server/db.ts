@@ -1,6 +1,6 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { Prisma, PrismaClient } from './generated/prisma/client.js'
-import type { HabitCreate, HabitUpdate } from './validation.js'
+import type { HabitCreate, HabitUpdate, MomentInput, MomentKind } from './validation.js'
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
 
@@ -89,4 +89,54 @@ export const addTrack = async (userId: number, habitId: number, date?: Date) => 
 export const deleteTrack = async (userId: number, id: number) => {
   const { count } = await prisma.track.deleteMany({ where: { id, habit: { userId } } })
   if (!count) throw new NotFoundError()
+}
+
+// Moments that AI agents report (server/mcp.ts), always scoped to the user whose key reported them
+
+const momentSelect = {
+  id: true,
+  kind: true,
+  note: true,
+  agent: true,
+  project: true,
+  date: true
+} satisfies Prisma.MomentSelect
+
+// Oldest first, like a habit's entries; the stats are computed in the browser
+export const listMoments = (userId: number) =>
+  prisma.moment.findMany({ where: { userId }, select: momentSelect, orderBy: { date: 'asc' } })
+
+export const createMoment = (userId: number, input: MomentInput) =>
+  prisma.moment.create({ data: { ...input, userId }, select: momentSelect })
+
+export const deleteMoment = async (userId: number, id: number) => {
+  const { count } = await prisma.moment.deleteMany({ where: { id, userId } })
+  if (!count) throw new NotFoundError()
+}
+
+// Newest first
+export const recentMoments = (
+  userId: number,
+  { limit, kind, project }: { limit: number; kind?: MomentKind; project?: string }
+) =>
+  prisma.moment.findMany({
+    where: { userId, kind, project },
+    select: momentSelect,
+    orderBy: { date: 'desc' },
+    take: limit
+  })
+
+// How many moments fall in [from, to), grouped by one field
+export const countMoments = async (
+  userId: number,
+  by: 'kind' | 'project' | 'agent',
+  from: Date,
+  to: Date
+) => {
+  const groups = await prisma.moment.groupBy({
+    by: [by],
+    where: { userId, date: { gte: from, lt: to } },
+    _count: { _all: true }
+  })
+  return groups.map((group) => ({ key: group[by], count: group._count._all }))
 }
