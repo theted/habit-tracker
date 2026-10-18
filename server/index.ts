@@ -13,6 +13,10 @@ if (await claimLegacyOwner(process.env.HABITS_PASSWORD)) {
 }
 await deleteExpiredSessions()
 
-createApp({ distDir: path.resolve('dist'), signupEnabled }).listen(port, () => {
+createApp({
+  distDir: path.resolve('dist'),
+  skillsDir: path.resolve('skills'),
+  signupEnabled
+}).listen(port, () => {
   console.log(`Server running on port ${port} (sign-up ${signupEnabled ? 'open' : 'closed'})`)
 })

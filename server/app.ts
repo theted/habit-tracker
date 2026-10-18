@@ -3,6 +3,7 @@ import path from 'node:path'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 import * as db from './db.js'
+import { mcp } from './mcp.js'
 import { dummyHash, hashPassword, needsRehash, verifyPassword } from './passwords.js'
 import { RateLimiter, tooManyRequests } from './rate-limit.js'
 import { sameOrigin, securityHeaders } from './security.js'
@@ -15,6 +16,7 @@ import {
   setSessionCookie,
   validateSession
 } from './sessions.js'
+import { createApiToken, listApiTokens, revokeApiToken } from './tokens.js'
 import {
   accountDelete,
   accountUpdate,
@@ -23,6 +25,7 @@ import {
   habitUpdate,
   id,
   registration,
+  tokenCreate,
   trackCreate
 } from './validation.js'
 
@@ -38,10 +41,17 @@ declare module 'express-serve-static-core' {
 export interface AppOptions {
   // The built SPA; without it (in tests) only the API is served
   distDir?: string
+  // skills/ in the repo, served so agents' machines can fetch the skill that goes with /mcp
+  skillsDir?: string
   log?: boolean
   signupEnabled?: boolean
   // Attempts allowed per window; tests turn them up
-  limits?: { loginPerAccount?: number; loginPerIp?: number; signupsPerIp?: number }
+  limits?: {
+    loginPerAccount?: number
+    loginPerIp?: number
+    signupsPerIp?: number
+    reportsPerHour?: number
+  }
 }
 
 const MINUTE = 60_000
@@ -234,6 +244,32 @@ const api = ({ signupEnabled = true, limits = {} }: AppOptions) => {
     res.sendStatus(204)
   })
 
+  // What AI agents have reported over /mcp
+  router.get('/moments', async (req, res) => {
+    res.json(await db.listMoments(req.user!.id))
+  })
+
+  router.delete('/moments/:id', async (req, res) => {
+    await db.deleteMoment(req.user!.id, id.parse(req.params.id))
+    res.sendStatus(204)
+  })
+
+  // The keys agents use for /mcp. A new key is shown once, in the response that creates it.
+  router.get('/tokens', async (req, res) => {
+    res.json(await listApiTokens(req.user!.id))
+  })
+
+  router.post('/tokens', async (req, res) => {
+    const { name } = tokenCreate.parse(req.body)
+    const { token, apiToken } = await createApiToken(req.user!.id, name)
+    res.status(201).json({ ...apiToken, token })
+  })
+
+  router.delete('/tokens/:id', async (req, res) => {
+    await revokeApiToken(req.user!.id, id.parse(req.params.id))
+    res.sendStatus(204)
+  })
+
   // Unknown API paths are 404s, not the SPA's index.html
   router.use((_req, res) => {
     res.status(404).json({ error: 'Not Found' })
@@ -268,7 +304,7 @@ const errorHandler = (
 }
 
 export const createApp = (options: AppOptions = {}) => {
-  const { distDir, log = true } = options
+  const { distDir, skillsDir, log = true } = options
   const app = express()
   app.disable('x-powered-by')
   // On the box, requests arrive from the host nginx through Docker's network; believe its
@@ -279,6 +315,24 @@ export const createApp = (options: AppOptions = {}) => {
   if (log) app.use(logger)
 
   app.use('/api', sameOrigin, api(options))
+  app.use('/mcp', mcp({ reportsPerHour: options.limits?.reportsPerHour }))
+  // MCP clients look here for an OAuth login. There is none (agents send a key), and the SPA
+  // mustn't answer in its place.
+  app.use('/.well-known', (_req, res) => {
+    res.status(404).json({ error: 'Not Found' })
+  })
+
+  if (skillsDir) {
+    app.use(
+      '/skills',
+      express.static(skillsDir, {
+        fallthrough: false,
+        setHeaders: (res, file) => {
+          if (file.endsWith('.md')) res.set('Content-Type', 'text/markdown; charset=utf-8')
+        }
+      })
+    )
+  }
 
   if (distDir) {
     // Fingerprinted assets can be cached for good; index.html must not be

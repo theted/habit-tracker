@@ -41,7 +41,9 @@ export const makeRouter = () =>
     routes: [
       { path: '/', name: 'home', component: { template: '<div />' } },
       { path: '/habits/:id', name: 'habit', component: { template: '<div />' } },
-      { path: '/login', name: 'login', component: { template: '<div />' } }
+      { path: '/login', name: 'login', component: { template: '<div />' } },
+      { path: '/agents', name: 'agents', component: { template: '<div />' } },
+      { path: '/settings', name: 'settings', component: { template: '<div />' } }
     ]
   })
 

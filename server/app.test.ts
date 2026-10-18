@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import path from 'node:path'
 import request from 'supertest'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp, type AppOptions } from './app.js'
@@ -55,6 +56,8 @@ beforeEach(async () => {
   await prisma.track.deleteMany()
   await prisma.habit.deleteMany()
   await prisma.session.deleteMany()
+  await prisma.moment.deleteMany()
+  await prisma.apiToken.deleteMany()
   await prisma.user.update({ where: { id: 1 }, data: { username: 'owner', passwordHash: null } })
 })
 
@@ -518,6 +521,101 @@ describe('entries', () => {
     expect((await client.delete(`/api/tracks/${track.id}`)).status).toBe(204)
     expect((await client.get(`/api/habits/${habit.id}`)).body.tracks).toEqual([])
     expect((await client.delete(`/api/tracks/${track.id}`)).status).toBe(404)
+  })
+})
+
+describe('agent keys', () => {
+  it('creates a key and shows it once, storing only its hash', async () => {
+    const client = await signUp()
+
+    const res = await client.post('/api/tokens', { name: '  Laptop  ' })
+
+    expect(res.status).toBe(201)
+    expect(res.body).toMatchObject({ name: 'Laptop', lastUsedAt: null })
+    expect(res.body.token).toMatch(/^hab_[\w-]{43}$/)
+    const list = (await client.get('/api/tokens')).body
+    expect(list).toEqual([
+      { id: res.body.id, name: 'Laptop', createdAt: res.body.createdAt, lastUsedAt: null }
+    ])
+    const row = await prisma.apiToken.findUniqueOrThrow({ where: { id: res.body.id } })
+    expect(row.hash).toBe(createHash('sha256').update(res.body.token).digest('hex'))
+  })
+
+  it('needs a name', async () => {
+    const client = await signUp()
+
+    const res = await client.post('/api/tokens', { name: '  ' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.issues[0].path).toBe('name')
+  })
+
+  it("revokes a key, but not someone else's", async () => {
+    const alice = await signUp()
+    const bob = await signUp()
+    const key = (await alice.post('/api/tokens', { name: 'Laptop' })).body
+
+    expect((await bob.delete(`/api/tokens/${key.id}`)).status).toBe(404)
+    expect((await alice.delete(`/api/tokens/${key.id}`)).status).toBe(204)
+    expect((await alice.get('/api/tokens')).body).toEqual([])
+  })
+})
+
+describe('moments', () => {
+  it("lists the user's own moments, oldest first", async () => {
+    const alice = await signUp()
+    const bob = await signUp()
+    await prisma.moment.createMany({
+      data: [
+        { userId: alice.user.id, kind: 'good', note: 'Later', date: new Date('2026-10-02T10:00Z') },
+        {
+          userId: alice.user.id,
+          kind: 'user_annoying',
+          note: 'Earlier',
+          project: 'kolla',
+          agent: 'Claude Code',
+          date: new Date('2026-10-01T10:00Z')
+        },
+        { userId: bob.user.id, kind: 'good', note: "Bob's", date: new Date('2026-10-01T12:00Z') }
+      ]
+    })
+
+    const res = await alice.get('/api/moments')
+
+    expect(res.body).toEqual([
+      {
+        id: expect.any(Number),
+        kind: 'user_annoying',
+        note: 'Earlier',
+        project: 'kolla',
+        agent: 'Claude Code',
+        date: '2026-10-01T10:00:00.000Z'
+      },
+      expect.objectContaining({ note: 'Later', project: null, agent: null })
+    ])
+  })
+
+  it("deletes a moment, but not someone else's", async () => {
+    const alice = await signUp()
+    const bob = await signUp()
+    const moment = await prisma.moment.create({
+      data: { userId: alice.user.id, kind: 'annoying', note: 'Flaky test' }
+    })
+
+    expect((await bob.delete(`/api/moments/${moment.id}`)).status).toBe(404)
+    expect((await alice.delete(`/api/moments/${moment.id}`)).status).toBe(204)
+    expect(await prisma.moment.count()).toBe(0)
+  })
+
+  it('serves the skill that goes with /mcp, as Markdown', async () => {
+    const app = createApp({ ...relaxed, skillsDir: path.resolve('skills') })
+
+    const res = await request(app).get('/skills/report-moments/SKILL.md')
+
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toBe('text/markdown; charset=utf-8')
+    expect(res.text).toMatch(/^---\nname: report-moments\n/)
+    expect((await request(app).get('/skills/nope.md')).status).toBe(404)
   })
 })
 

@@ -13,9 +13,14 @@ export default defineConfig({
     }
   },
   server: {
-    // In dev the API runs on its own (npm run dev:server). In production it serves this build.
-    proxy: {
-      '/api': 'http://localhost:3100'
-    }
+    // In dev the API (and /mcp) runs on its own (npm run dev:server). In production it serves this
+    // build. The Host header is passed through unchanged (Vite's shorthand would rewrite it to the
+    // API's), because the API refuses requests whose Origin doesn't match it (server/security.ts).
+    proxy: Object.fromEntries(
+      ['/api', '/mcp', '/skills'].map((path) => [
+        path,
+        { target: 'http://localhost:3100', changeOrigin: false }
+      ])
+    )
   }
 })

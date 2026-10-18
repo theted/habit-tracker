@@ -26,6 +26,13 @@ const session = useSessionStore()
         >
           Habits
         </RouterLink>
+        <RouterLink
+          :to="{ name: 'agents' }"
+          class="rounded-lg px-3 py-1.5 font-medium text-muted transition hover:bg-surface-2 hover:text-fg"
+          active-class="bg-surface-2 text-fg"
+        >
+          Agents
+        </RouterLink>
         <button
           type="button"
           class="ml-1 grid size-9 place-items-center rounded-lg text-muted transition hover:bg-surface-2 hover:text-fg"

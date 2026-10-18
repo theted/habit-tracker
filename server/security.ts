@@ -1,5 +1,13 @@
 import type { NextFunction, Request, Response } from 'express'
 
+const hostOf = (origin: string) => {
+  try {
+    return new URL(origin).host
+  } catch {
+    return undefined
+  }
+}
+
 // Sessions live in a cookie, and a cookie gets sent with requests that other sites trigger. The
 // SameSite=Lax cookie already stays off cross-site POSTs; refusing every request that changes
 // something unless it says it comes from this site is the second lock (the Origin check that
@@ -7,13 +15,19 @@ import type { NextFunction, Request, Response } from 'express'
 export const sameOrigin = (req: Request, res: Response, next: NextFunction) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next()
   const origin = req.get('origin')
-  let host: string | undefined
-  try {
-    host = origin ? new URL(origin).host : undefined
-  } catch {
-    host = undefined
+  if (!origin || hostOf(origin) !== req.get('host')) {
+    res.status(403).json({ error: 'Forbidden' })
+    return
   }
-  if (!host || host !== req.get('host')) {
+  next()
+}
+
+// For /mcp, where agents send no Origin at all: a request that does carry one comes from a web
+// page, and only this site's own pages may call. That's the DNS rebinding guard the MCP spec asks
+// servers for.
+export const notCrossOrigin = (req: Request, res: Response, next: NextFunction) => {
+  const origin = req.get('origin')
+  if (origin !== undefined && hostOf(origin) !== req.get('host')) {
     res.status(403).json({ error: 'Forbidden' })
     return
   }

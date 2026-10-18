@@ -4,6 +4,10 @@ Keep count of your habits, good and bad. Tap + every time you do something; the 
 streaks, a year at a glance, and when and on which days you tend to do it. Everyone gets their own
 account.
 
+AI agents get a diary too: connected over [MCP](#agents), Claude Code and friends report good
+times, annoying times, the times you were annoying, and anything else, and the Agents page charts
+it all over time.
+
 Live at https://habits.sundbergsolutions.se.
 
 ## Stack
@@ -11,7 +15,8 @@ Live at https://habits.sundbergsolutions.se.
 - **Client:** Vue 3.5 (`<script setup>`, `defineModel`, `useTemplateRef`), Pinia, Vue Router,
   VueUse, Tailwind CSS 4, Lucide icons, Vite
 - **Server:** Express 5, zod, Prisma 7 on SQLite (better-sqlite3 adapter); accounts with
-  Argon2id passwords and cookie sessions, no auth library (see [Accounts](#accounts))
+  Argon2id passwords and cookie sessions, no auth library (see [Accounts](#accounts)); an MCP
+  server for agents on the MCP TypeScript SDK v2 (see [Agents](#agents))
 - **Tests:** Vitest, with Vue Test Utils for the UI and supertest for the API
 
 The charts and the heatmap are plain HTML and CSS, so they follow the theme, animate with CSS
@@ -26,7 +31,8 @@ npm install
 cp .env.example .env
 npx prisma migrate deploy     # creates prisma/dev.db
 npx prisma generate
-npm run db:seed               # optional: a "demo" account (password habits-demo) with a year of history
+npm run db:seed               # optional: a "demo" account (password habits-demo) with a year of history,
+                              # for its habits and its agents' moments
 ```
 
 ### Develop
@@ -51,7 +57,8 @@ npm run test:watch    # while working
 
 - `server/*.test.ts` drive the real Express app against a throwaway SQLite database, built by the
   same migrations production runs: accounts, sessions, CSRF, rate limits, privacy between users,
-  habits and entries.
+  habits and entries, agent keys and moments. `server/mcp.test.ts` connects the official MCP
+  client to `/mcp` over HTTP, in both protocol eras.
 - `src/**/*.test.ts` covers the stats maths, the stores, the API client and the components.
 
 Tests run in UTC (`vitest.config.ts`), so date maths gives the same answers on every machine.
@@ -110,6 +117,48 @@ On the first start after the upgrade it gets the old shared `HABITS_PASSWORD` as
 (`server/legacy.ts`); log in as `owner` with that, then rename the account and change the password
 in Settings. After that, `HABITS_PASSWORD` can go from the environment.
 
+## Agents
+
+`/mcp` is an [MCP](https://modelcontextprotocol.io) server (Streamable HTTP, stateless) where AI
+agents report **moments**: how their work with you is going. A moment has a kind, a note of up to
+280 characters, and optionally the project and the agent it came from. The kinds:
+
+| Kind | |
+|---|---|
+| `good` | 😊 something went well |
+| `annoying` | 😤 the work itself fought back |
+| `user_annoying` | 🙄 you made it harder than it needed to be |
+| `other` | 💬 anything else worth remembering |
+
+The tools are `report_moment`, `moment_stats` (counts per kind over N days against the N days
+before) and `recent_moments`. The server's instructions tell a connecting agent when to report;
+the [report-moments skill](skills/report-moments/SKILL.md) goes into more detail (how often, what
+makes a good note, what never goes in one).
+
+The Agents page shows the moments of the last 7 days, 30 days, 12 weeks or year: totals against the
+period before, the share of good times, columns per day, week or month, the time of day and weekday
+it gets rough, the busiest projects and agents, and every note.
+
+### Connecting Claude Code
+
+Agents authenticate with a key, made in **Settings → Agents** and sent as
+`Authorization: Bearer hab_…`. A key is 256 random bits; like sessions, only its SHA-256 is stored.
+Each key may report 60 moments an hour. Settings shows both commands with the address and key
+filled in:
+
+```sh
+claude mcp add --transport http --scope user habits https://habits.sundbergsolutions.se/mcp \
+  --header "Authorization: Bearer hab_…"
+
+mkdir -p ~/.claude/skills/report-moments
+curl -fsSL https://habits.sundbergsolutions.se/skills/report-moments/SKILL.md \
+  -o ~/.claude/skills/report-moments/SKILL.md
+```
+
+Requests to `/mcp` that carry an `Origin` (that is, come from a web page) must come from this site,
+as the MCP spec advises against DNS rebinding. `/.well-known/*` answers 404, so clients don't go
+looking for an OAuth login.
+
 ## API
 
 Bodies are JSON; dates are ISO 8601. Everything except `/api/auth/*` needs a session, and every
@@ -130,6 +179,11 @@ request other than `GET` needs a same-site `Origin`.
 | `DELETE` | `/api/habits/:id` | the habit and its entries → 204 |
 | `POST` | `/api/habits/:id/tracks` | log an entry now, or `{ date }` in the past → 201 |
 | `DELETE` | `/api/tracks/:id` | remove one entry → 204 |
+| `GET` | `/api/moments` | every moment agents reported, oldest first |
+| `DELETE` | `/api/moments/:id` | remove one → 204 |
+| `GET` | `/api/tokens` | the agent keys, without the secrets |
+| `POST` | `/api/tokens` | `{ name }` → 201, with the `token`, which is never shown again |
+| `DELETE` | `/api/tokens/:id` | revoke a key → 204 |
 
 Invalid input gets a 400 with `issues: [{ path, message }]`.
 
