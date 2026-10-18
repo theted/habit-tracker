@@ -561,6 +561,121 @@ describe('agent keys', () => {
   })
 })
 
+describe('tracking with a key', () => {
+  // How a script or hook calls: a key, no cookie, no Origin
+  const track = (token: string | undefined, body: object, app: App = defaultApp) => {
+    const req = request(app).post('/api/track').set('Host', HOST)
+    if (token) req.set('Authorization', `Bearer ${token}`)
+    return req.send(body)
+  }
+  const keyFor = async (client: Awaited<ReturnType<typeof signUp>>) =>
+    (await client.post('/api/tokens', { name: 'Hook' })).body as { id: number; token: string }
+
+  it('logs an entry for the habit with that name, ignoring case', async () => {
+    const client = await signUp()
+    const habit = (await client.post('/api/habits', { title: 'Work on habit-tracker' })).body
+    const { token } = await keyFor(client)
+
+    const res = await track(token, { habit: '  work on HABIT-tracker ' })
+
+    expect(res.status).toBe(201)
+    expect(res.body).toMatchObject({
+      habit: { id: habit.id, title: 'Work on habit-tracker', emoji: '✨' },
+      track: { habitId: habit.id },
+      created: false
+    })
+    expect((await client.get(`/api/habits/${habit.id}`)).body.tracks).toHaveLength(1)
+  })
+
+  it("creates the habit when there's none by that name", async () => {
+    const client = await signUp()
+    const { token } = await keyFor(client)
+
+    const res = await track(token, {
+      habit: 'Run',
+      emoji: '🏃',
+      color: 'emerald',
+      date: '2026-10-01T07:30:00Z'
+    })
+
+    expect(res.status).toBe(201)
+    expect(res.body.created).toBe(true)
+    const habits = (await client.get('/api/habits')).body
+    expect(habits).toEqual([
+      expect.objectContaining({
+        title: 'Run',
+        emoji: '🏃',
+        color: 'emerald',
+        tracks: [{ id: res.body.track.id, date: '2026-10-01T07:30:00.000Z' }]
+      })
+    ])
+    // The next time, it's found
+    expect((await track(token, { habit: 'run', emoji: '🚲' })).body.created).toBe(false)
+    expect((await client.get('/api/habits')).body).toEqual([
+      expect.objectContaining({ emoji: '🏃', tracks: [expect.anything(), expect.anything()] })
+    ])
+  })
+
+  it("only reaches the key owner's habits", async () => {
+    const alice = await signUp()
+    const bob = await signUp()
+    await alice.post('/api/habits', { title: 'Run' })
+    const { token } = await keyFor(bob)
+
+    expect((await track(token, { habit: 'Run' })).body.created).toBe(true)
+    expect((await alice.get('/api/habits')).body[0].tracks).toEqual([])
+  })
+
+  it('needs a valid key; a session is not enough', async () => {
+    const client = await signUp()
+    const key = await keyFor(client)
+    await client.delete(`/api/tokens/${key.id}`)
+
+    const responses = [
+      await client.post('/api/track', { habit: 'Run' }),
+      await track(undefined, { habit: 'Run' }),
+      await track('hab_not-a-real-key', { habit: 'Run' }),
+      await track(key.token, { habit: 'Run' })
+    ]
+
+    expect(responses.map((res) => res.status)).toEqual([401, 401, 401, 401])
+    expect(responses[1]!.headers['www-authenticate']).toMatch(/^Bearer/)
+    expect((await client.get('/api/habits')).body).toEqual([])
+  })
+
+  it('turns away bad input and pages on other sites', async () => {
+    const client = await signUp()
+    const { token } = await keyFor(client)
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString()
+
+    const blank = await track(token, { habit: '  ' })
+    const future = await track(token, { habit: 'Run', date: tomorrow })
+    const crossSite = await request(defaultApp)
+      .post('/api/track')
+      .set('Host', HOST)
+      .set('Origin', 'https://evil.example')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ habit: 'Run' })
+
+    expect(blank.status).toBe(400)
+    expect(blank.body.issues[0].path).toBe('habit')
+    expect(future.status).toBe(400)
+    expect(crossSite.status).toBe(403)
+    expect((await client.get('/api/habits')).body).toEqual([])
+  })
+
+  it('limits the entries a key logs per hour', async () => {
+    const app = createApp({ ...relaxed, limits: { ...relaxed.limits, tracksPerHour: 2 } })
+    const client = await signUp(app)
+    const { token } = await keyFor(client)
+
+    const statuses = []
+    for (let i = 0; i < 3; i++) statuses.push((await track(token, { habit: 'Run' }, app)).status)
+
+    expect(statuses).toEqual([201, 201, 429])
+  })
+})
+
 describe('moments', () => {
   it("lists the user's own moments, oldest first", async () => {
     const alice = await signUp()

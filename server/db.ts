@@ -1,6 +1,12 @@
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { Prisma, PrismaClient } from './generated/prisma/client.js'
-import type { HabitCreate, HabitUpdate, MomentInput, MomentKind } from './validation.js'
+import type {
+  HabitCreate,
+  HabitUpdate,
+  MomentInput,
+  MomentKind,
+  TrackByName
+} from './validation.js'
 
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
 
@@ -84,6 +90,24 @@ export const addTrack = async (userId: number, habitId: number, date?: Date) => 
   })
   if (!habit) throw new NotFoundError()
   return prisma.track.create({ data: { habitId, ...(date && { date }) }, select: trackSelect })
+}
+
+// For scripts and hooks, which know a habit by its name (POST /api/track): logs an entry for the
+// habit called that, ignoring case, and creates the habit first if there's none
+export const trackByName = async (
+  userId: number,
+  { habit: title, date, emoji, color }: TrackByName
+) => {
+  const select = { id: true, title: true, emoji: true } satisfies Prisma.HabitSelect
+  const habits = await prisma.habit.findMany({ where: { userId }, select, orderBy: { id: 'asc' } })
+  const existing = habits.find((habit) => habit.title.toLowerCase() === title.toLowerCase())
+  const habit =
+    existing ?? (await prisma.habit.create({ data: { userId, title, emoji, color }, select }))
+  const track = await prisma.track.create({
+    data: { habitId: habit.id, ...(date && { date }) },
+    select: trackSelect
+  })
+  return { habit, track, created: !existing }
 }
 
 export const deleteTrack = async (userId: number, id: number) => {

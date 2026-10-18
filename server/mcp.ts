@@ -1,17 +1,16 @@
 import { toNodeHandler } from '@modelcontextprotocol/node'
 import { createMcpHandler, McpServer, type AuthInfo } from '@modelcontextprotocol/server'
-import express from 'express'
+import express, { type RequestHandler } from 'express'
 import { z } from 'zod'
 import * as db from './db.js'
-import { RateLimiter, tooManyRequests } from './rate-limit.js'
+import { RateLimiter } from './rate-limit.js'
 import { notCrossOrigin } from './security.js'
-import { validateApiToken } from './tokens.js'
 import { MOMENT_KINDS, type MomentKind } from './validation.js'
 
 // An MCP server for AI agents, at /mcp: they report how their work is going ("moments"), and can
 // read back what has been reported. Agents authenticate with a key the user creates in Settings,
-// sent as Authorization: Bearer hab_…. Every request gets a fresh server bound to the key's owner
-// (the SDK's stateless serving), so nothing is kept between requests.
+// sent as Authorization: Bearer hab_… (key-auth.ts). Every request gets a fresh server bound to
+// the key's owner (the SDK's stateless serving), so nothing is kept between requests.
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -21,6 +20,8 @@ declare module 'express-serve-static-core' {
 }
 
 export interface McpOptions {
+  // requireKey() from key-auth.ts, shared with the app's other key-authenticated route
+  requireKey: RequestHandler
   // Reports allowed per key per hour, so an agent stuck in a loop can't flood the diary
   reportsPerHour?: number
 }
@@ -206,12 +207,8 @@ const buildServer = (userId: number, tokenId: number, reports: RateLimiter) => {
   return server
 }
 
-const bearer = (header: string | undefined) => /^Bearer\s+(\S+)\s*$/i.exec(header ?? '')?.[1]
-
-export const mcp = ({ reportsPerHour = 60 }: McpOptions = {}) => {
+export const mcp = ({ requireKey, reportsPerHour = 60 }: McpOptions) => {
   const reports = new RateLimiter(reportsPerHour, 60 * MINUTE)
-  // Keys are far too long to guess, but there's no reason to let anyone keep trying
-  const failures = new RateLimiter(30, 15 * MINUTE)
 
   const handler = createMcpHandler(
     ({ authInfo }) => {
@@ -224,22 +221,11 @@ export const mcp = ({ reportsPerHour = 60 }: McpOptions = {}) => {
   const serve = toNodeHandler(handler, { onerror: (err) => console.error('MCP:', err) })
 
   const router = express.Router()
-  router.use(notCrossOrigin)
-
-  router.use(async (req, res, next) => {
-    const token = bearer(req.get('authorization'))
-    const key = token && (await validateApiToken(token))
-    if (!key) {
-      const wait = failures.hit(req.ip ?? '')
-      if (wait) return tooManyRequests(res, wait)
-      res.set('WWW-Authenticate', 'Bearer realm="habits"')
-      res.status(401).json({
-        error: 'Unauthorized: send a key from Settings → Agents as "Authorization: Bearer hab_…"'
-      })
-      return
-    }
+  router.use(notCrossOrigin, requireKey)
+  router.use((req, _res, next) => {
+    const key = req.key!
     req.auth = {
-      token: token!,
+      token: key.token,
       clientId: `key-${key.id}`,
       scopes: [],
       extra: { userId: key.userId, tokenId: key.id }

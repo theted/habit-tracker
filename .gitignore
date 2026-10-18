@@ -15,6 +15,8 @@ coverage
 *.local
 
 .env
+# Claude Code's personal settings, where HABITS_KEY can go
+.claude/settings.local.json
 prisma/*.db*
 server/generated
 dist-server

@@ -3,10 +3,11 @@ import path from 'node:path'
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { ZodError } from 'zod'
 import * as db from './db.js'
+import { requireKey } from './key-auth.js'
 import { mcp } from './mcp.js'
 import { dummyHash, hashPassword, needsRehash, verifyPassword } from './passwords.js'
 import { RateLimiter, tooManyRequests } from './rate-limit.js'
-import { sameOrigin, securityHeaders } from './security.js'
+import { notCrossOrigin, sameOrigin, securityHeaders } from './security.js'
 import {
   clearSessionCookie,
   createSession,
@@ -26,6 +27,7 @@ import {
   id,
   registration,
   tokenCreate,
+  trackByName,
   trackCreate
 } from './validation.js'
 
@@ -51,6 +53,7 @@ export interface AppOptions {
     loginPerIp?: number
     signupsPerIp?: number
     reportsPerHour?: number
+    tracksPerHour?: number
   }
 }
 
@@ -278,6 +281,19 @@ const api = ({ signupEnabled = true, limits = {} }: AppOptions) => {
   return router
 }
 
+// Logs an entry for a habit by its name, with a key instead of a session: for scripts and hooks,
+// such as this repo's Claude Code hook (.claude/hooks/track-work.mjs). Creates the habit if needed.
+const trackWithKey = (perHour: number) => {
+  // Each key's entries per hour, so a script stuck in a loop can't flood a habit
+  const tracks = new RateLimiter(perHour, 60 * MINUTE)
+  return async (req: Request, res: Response) => {
+    const key = req.key!
+    const wait = tracks.hit(String(key.id))
+    if (wait) return tooManyRequests(res, wait)
+    res.status(201).json(await db.trackByName(key.userId, trackByName.parse(req.body ?? {})))
+  }
+}
+
 const logger = (req: Request, _res: Response, next: NextFunction) => {
   console.info(`${new Date().toISOString()} ${req.ip} ${req.method} ${req.url}`)
   next()
@@ -314,8 +330,11 @@ export const createApp = (options: AppOptions = {}) => {
   app.use(express.json({ limit: '16kb' }))
   if (log) app.use(logger)
 
+  const withKey = requireKey()
+  // Before the session API, whose Origin check would turn away scripts (they send none)
+  app.post('/api/track', notCrossOrigin, withKey, trackWithKey(options.limits?.tracksPerHour ?? 60))
   app.use('/api', sameOrigin, api(options))
-  app.use('/mcp', mcp({ reportsPerHour: options.limits?.reportsPerHour }))
+  app.use('/mcp', mcp({ requireKey: withKey, reportsPerHour: options.limits?.reportsPerHour }))
   // MCP clients look here for an OAuth login. There is none (agents send a key), and the SPA
   // mustn't answer in its place.
   app.use('/.well-known', (_req, res) => {
