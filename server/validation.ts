@@ -54,10 +54,19 @@ export const trackCreate = z.object({
     .optional()
 })
 
+// Logging an entry by the habit's name, as scripts and hooks do with a key (POST /api/track). The
+// emoji and colour are only used if there's no habit by that name yet, and it gets created.
+export const trackByName = trackCreate.extend({
+  habit: title,
+  emoji: emoji.optional(),
+  color: color.optional()
+})
+
 export const id = z.coerce.number().int().positive()
 
 export type HabitCreate = z.infer<typeof habitCreate>
 export type HabitUpdate = z.infer<typeof habitUpdate>
+export type TrackByName = z.infer<typeof trackByName>
 
 // What AI agents report over MCP (server/mcp.ts). Keep in step with src/lib/moments.ts.
 export const MOMENT_KINDS = ['good', 'annoying', 'user_annoying', 'other'] as const

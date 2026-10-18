@@ -159,10 +159,36 @@ Requests to `/mcp` that carry an `Origin` (that is, come from a web page) must c
 as the MCP spec advises against DNS rebinding. `/.well-known/*` answers 404, so clients don't go
 looking for an OAuth login.
 
+### Logging habits from scripts and hooks
+
+The same key logs habit entries, for anything that can make an HTTP request: a hook, a cron job, a
+phone shortcut. The habit is found by name, ignoring case, and created with its first entry; `emoji`
+and `color` are only used then. `date` backdates the entry. Each key may log 60 entries an hour.
+
+```sh
+curl https://habits.sundbergsolutions.se/api/track \
+  -H "Authorization: Bearer $HABITS_KEY" -H "Content-Type: application/json" \
+  -d '{ "habit": "Run", "emoji": "🏃" }'
+```
+
+This repo tracks the work on itself that way. Its Claude Code hook
+([`.claude/hooks/track-work.mjs`](.claude/hooks/track-work.mjs), set up in
+[`.claude/settings.json`](.claude/settings.json)) logs an entry for "Work on habit-tracker" each
+time a session starts or resumes here. It does nothing until `HABITS_KEY` is set, for example in
+`.claude/settings.local.json` (git-ignored), or in `~/.claude/settings.json` to have it everywhere:
+
+```json
+{ "env": { "HABITS_KEY": "hab_…" } }
+```
+
+`HABITS_URL` points it at another server, such as `http://localhost:3100` in development, and
+`HABITS_HABIT` logs a different habit. Copied into `~/.claude/settings.json`, with the script
+somewhere stable, the hook tracks every project as its own habit.
+
 ## API
 
-Bodies are JSON; dates are ISO 8601. Everything except `/api/auth/*` needs a session, and every
-request other than `GET` needs a same-site `Origin`.
+Bodies are JSON; dates are ISO 8601. Everything except `/api/auth/*` and `/api/track` needs a
+session, and every request other than `GET` needs a same-site `Origin`.
 
 | | | |
 |---|---|---|
@@ -179,6 +205,7 @@ request other than `GET` needs a same-site `Origin`.
 | `DELETE` | `/api/habits/:id` | the habit and its entries → 204 |
 | `POST` | `/api/habits/:id/tracks` | log an entry now, or `{ date }` in the past → 201 |
 | `DELETE` | `/api/tracks/:id` | remove one entry → 204 |
+| `POST` | `/api/track` | with a key, not a session: `{ habit, date?, emoji?, color? }` → 201 `{ habit, track, created }` |
 | `GET` | `/api/moments` | every moment agents reported, oldest first |
 | `DELETE` | `/api/moments/:id` | remove one → 204 |
 | `GET` | `/api/tokens` | the agent keys, without the secrets |
