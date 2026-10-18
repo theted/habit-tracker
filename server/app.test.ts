@@ -277,6 +277,9 @@ describe('cross-site requests', () => {
 
     expect(res.headers['content-security-policy']).toContain("default-src 'self'")
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'")
+    expect(res.headers['content-security-policy']).toContain(
+      "img-src 'self' data: https://visits.sundbergsolutions.se"
+    )
     expect(res.headers['x-content-type-options']).toBe('nosniff')
     expect(res.headers['x-frame-options']).toBe('DENY')
   })

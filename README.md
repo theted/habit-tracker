@@ -142,6 +142,15 @@ HABITS_PASSWORD=… docker compose up --build
 Serves the app on http://127.0.0.1:8087. The SQLite database lives in the `habits_data` volume at
 `/data/habits.db`.
 
+## Visit counter
+
+Page views are counted by the visit counter the other sundbergsolutions.se sites use: a 1×1 image
+from `visits.sundbergsolutions.se`, as site `habit-tracker`. It keeps daily totals and referring
+hosts only, with no cookies and no IP addresses. `src/lib/visits.ts` requests the image on every
+page the router lands on, since the Content-Security-Policy rules out the usual inline snippet; the
+policy's `img-src` allows that one host. Only requests from the live site count, so local runs
+don't.
+
 ## Deploy
 
 `.github/workflows/ci.yml` lints, type-checks, builds and tests every pull request and every push.
