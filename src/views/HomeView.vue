@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { computed, onMounted, ref } from 'vue'
 import HabitCard from '../components/HabitCard.vue'
 import HabitFormDialog from '../components/HabitFormDialog.vue'
+import TypicalDay from '../components/TypicalDay.vue'
 import AppButton from '../components/ui/AppButton.vue'
 import { useMinuteClock } from '../composables/useMinuteClock'
 import { dayKey } from '../lib/stats'
@@ -128,6 +129,8 @@ const progress = computed(() =>
     >
       <HabitCard v-for="(habit, i) in store.habits" :key="habit.id" :habit :style="{ '--i': i }" />
     </TransitionGroup>
+
+    <TypicalDay v-if="store.habits.length" class="mt-8" :habits="store.habits" :now />
 
     <HabitFormDialog v-model:open="creating" />
   </div>

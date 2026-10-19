@@ -4,6 +4,12 @@ Keep count of your habits, good and bad. Tap + every time you do something; the 
 streaks, a year at a glance, and when and on which days you tend to do it. Everyone gets their own
 account.
 
+Each habit also gets its usual time of day (and whether that's drifting earlier or later), a punch
+card of weekdays against hours, every recent entry plotted by time, and its rhythm: the typical gap
+between entries and the longest break. The home page lays out a typical day, with what's next up.
+Times of day wrap round midnight, so a habit done at 23:50 and 00:10 counts as one late-night
+habit. The maths is in [src/lib/timing.ts](src/lib/timing.ts).
+
 AI agents get a diary too: connected over [MCP](#agents), Claude Code and friends report good
 times, annoying times, the times you were annoying, and anything else, and the Agents page charts
 it all over time.
@@ -19,8 +25,8 @@ Live at https://habits.sundbergsolutions.se.
   server for agents on the MCP TypeScript SDK v2 (see [Agents](#agents))
 - **Tests:** Vitest, with Vue Test Utils for the UI and supertest for the API
 
-The charts and the heatmap are plain HTML and CSS, so they follow the theme, animate with CSS
-transitions and can be tested in jsdom.
+The charts and the heatmap are plain HTML and CSS (and a little SVG for the entry-time scatter),
+so they follow the theme, animate with CSS transitions and can be tested in jsdom.
 
 ## Project setup
 

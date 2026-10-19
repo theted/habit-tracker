@@ -24,6 +24,8 @@ import ActivityList from './ActivityList.vue'
 import BarChart from './BarChart.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import HabitFormDialog from './HabitFormDialog.vue'
+import HabitRhythm from './HabitRhythm.vue'
+import HabitTiming from './HabitTiming.vue'
 import HeatmapGrid from './HeatmapGrid.vue'
 import LogPastEntry from './LogPastEntry.vue'
 import StatTile from './StatTile.vue'
@@ -278,6 +280,9 @@ const deleteMessage = computed(() => {
         :label="`${modes.find((m) => m.value === mode)!.label}: ${chart.insight}`"
       />
     </section>
+
+    <HabitTiming :dates :now />
+    <HabitRhythm :dates :now />
 
     <section class="rounded-3xl border border-line bg-surface p-5 shadow-card sm:p-6">
       <header class="mb-5 flex flex-wrap items-end justify-between gap-4">
